@@ -1,0 +1,8 @@
+database:
+  type: "postgres"
+  host: localhost
+  type: "postgres"
+  port: 5432
+  dbname: "runmetrics"
+  user: postgres
+  password: m3tr1cs
