@@ -1,0 +1,7 @@
+version: '3'
+services:
+  postgresdb:
+    image: postgresmetrics:latest
+    container_name: postgresdb
+    ports:
+      - "5432:5432"
