@@ -25,19 +25,37 @@ class database(object):
         """
         raise NotImplementedError
     @abstractmethod
-    def add_metrics(self,commit_id,metrics):
-        """
-        adds a metrics to a commit id .
-
-        :return: bool
-        """
-        raise NotImplementedError
-    @abstractmethod
     def get_pending_counts(self):
         """
         get pending tasks.
 
         :return: bool
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def can_process_this(self,row,new_state,old_state):
+        """
+        get pending tasks.
+
+        :return: bool
+        """
+        raise NotImplementedError
+    @abstractmethod
+    def reset_to_init(self,uid,state):
+        """
+        reset to init state.
+
+        :return: bool
+        """
+        raise NotImplementedError
+
+
+
+    @abstractmethod
+    def get_commit_details(self,commit_id):
+        """
+        get details of a commit
         """
         raise NotImplementedError
     
@@ -49,3 +67,18 @@ class database(object):
         :return: bool
         """
         raise NotImplementedError
+    @abstractmethod
+    def update_metrics_for_commit(self,uid:int,metrics:dict,state:str):
+        """
+        update metrics data from a commit.
+
+        :return: bool
+        """
+        raise NotImplementedError
+    @abstractmethod
+    def get_commits(self,commit_row,count,direction):
+        """
+        get commits above or below a commit
+        """
+        raise NotImplementedError
+
