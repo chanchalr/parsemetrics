@@ -56,12 +56,6 @@ class postgres_db(database.database):
             print(str(e))
             raise e
 
-    def add_metrics(self,commit_id,metrics):
-        """
-        adds a metrics to a commit id .
-
-        :return: bool
-        """
     def get_pending_counts(self):
         """
         get pending tasks.
@@ -69,25 +63,128 @@ class postgres_db(database.database):
         :return: bool
         """
         cursor = self.conn.cursor()
-        select_query= "SELECT uid, repo_path, metrics_file FROM commmit_metrics WHERE state = '"+state+"' order by created_at asc"
+        select_query= "SELECT count(*) FROM commmit_metrics WHERE state = '"+state.COMMIT_PARSE_IN_PROCESS+"' OR state='"+state.COMMIT_PARSE_INIT+"'"
         try:
             cursor.execute(select_query)
             rows = cursor.fetchall()
             cursor.close()
-            return rows
+            return rows[0][0]
         except (Exception, psycopg2.Error) as error:
-            print("Error:", error)
-            return []
+            print("error in get_pending_counts commits:", error)
+            return 0
 
-    def get_pending_commits(self,count,state=state.COMMIT_PARSE_INIT):
+    def get_waiting_to_parse_commits(self,count,state=state.COMMIT_PARSE_INIT):
         cursor = self.conn.cursor()
-        select_query= "SELECT uid, repo_path, metrics_file FROM commmit_metrics WHERE state = '"+state+"' order by created_at asc"
+        select_query= "SELECT uid, repo_path, metrics_file,commit_id FROM commmit_metrics WHERE state = '"+state+"' order by created_at asc"
         try:
             cursor.execute(select_query)
             rows = cursor.fetchall()
             cursor.close()
             return rows
         except (Exception, psycopg2.Error) as error:
-            print("Error:", error)
+            print("error in getting waiting to parse commits:", error)
+            return []
+    def get_commit_details(self,commit_id:str):
+        select_query = "SELECT uid FROM commmit_metrics WHERE commit_id=%s"
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute(select_query,[commit_id])
+            rows = cursor.fetchall()
+            return rows
+        except (Exception, psycopg2.Error) as error:
+            print("Error while updating new process state:", error)
+            self.conn.rollback()
+            return False
+    def get_commits(self,commmit_row:List,count=50,direction="forward"):
+        print("in get commits")
+        uid = None
+        res = []
+        if commmit_row!=None and len(commmit_row)>0:
+            uid=commmit_row[0][0]
+        select_query = "SELECT commit_id,author,co_authors,committed_time,authored_date,metrics,uid FROM commmit_metrics WHERE state=%s"
+        if uid!= None:
+            if direction == "forward":
+                select_query += " AND uid > "+str(uid)
+            else:
+                select_query += " AND uid < "+str(uid)
+        if direction == "forward":
+            select_query += " ORDER BY uid ASC LIMIT %s"
+        else:
+            select_query += " ORDER BY uid DESC LIMIT %s"
+        print("========================="+select_query)
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute(select_query,[state.COMMIT_PARSE_COMPLETE,count])
+            print("Executing query ",select_query)
+            rows = cursor.fetchall()
+            res = []
+            for row in rows:
+                print(len(row),row,row[0],row[1],row[2],row[3],row[4],row[5])
+                res.append({
+                    "commit_id":row[0],
+                    "author": row[1],
+                    "co_authors":row[2],
+                    "committed_time": row[3],
+                    "authored_date":row[4],
+                    "metrics":row[5]
+                })
+            return res
+        except (Exception, psycopg2.Error) as error:
+            print("Error while selecting metrics",str(error))
             return []
 
+
+    def can_process_this(self,row,new_state=state.COMMIT_PARSE_IN_PROCESS,old_state=state.COMMIT_PARSE_INIT):
+        """
+        get pending tasks.
+
+        :return: bool
+        """
+        update_query = "UPDATE commmit_metrics SET state=%s WHERE state=%s AND uid=%s"
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute(update_query, (new_state, old_state,row[0]))
+            self.conn.commit()
+            if cursor.rowcount > 0:
+                return True
+            else:
+                return False
+        except (Exception, psycopg2.Error) as error:
+            print("Error while updating new process state:", error)
+            self.conn.rollback()
+            return False
+        
+    def reset_to_init(self,uid:int,state=state.COMMIT_PARSE_INIT):
+        try:
+            cursor = self.conn.cursor()
+            # Construct the SQL INSERT statement with the JSON data
+            update_query = "UPDATE commmit_metrics SET state=%s where uid= %s"
+            # Execute the SQL statement with the JSON data
+            cursor.execute(update_query, [state,uid])
+            self.conn.commit()
+            if cursor.rowcount > 0:
+                return True
+            else:
+                return False
+        except Exception as e:
+            print("Error while resetting to init state:"+str(e))
+            return False
+
+
+    def update_metrics_for_commit(self,uid:int,metrics:dict={},state=state.COMMIT_PARSE_COMPLETE):
+        try:
+            print("update metrics for uid",uid,"metrics",metrics,"state",state)
+            cursor = self.conn.cursor()
+            # Construct the SQL INSERT statement with the JSON data
+            update_query = "UPDATE commmit_metrics SET metrics=%s,state=%s where uid=%s"
+            # Execute the SQL statement with the JSON data
+            cursor.execute(update_query, [json.dumps(metrics),state,uid])
+            self.conn.commit()
+            if cursor.rowcount > 0:
+                return True
+            else:
+                print("Failed to update any data")
+                return False
+        except Exception as e:
+            print("Error while updating the metrics: "+str(e))
+            return False
