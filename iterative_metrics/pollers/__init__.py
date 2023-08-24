@@ -14,13 +14,11 @@ class pollers(object):
             self.repo = git.Repo(repo_path)
 
     def parse_metrics(self,uid:int,repo_path:str,metrics_file:str,commit_id:str):
-        print("starting metrics parsing for commit ",commit_id)
         if self.repo == None:
             self.repo = git.Repo(repo_path)
         try:
             commit = self.repo.commit(commit_id)
             tree = commit.tree
-            print("tree is ========= ",tree)
             metrics_data= {}
             #if metrics_file in tree:
             try:
@@ -29,14 +27,11 @@ class pollers(object):
                 metrics_data = json.loads(file_content)
             except Exception as e:
                 pass
-            print("metrics data is ",metrics_data)
             #uid:int,metrics:dict={},state=state.COMMIT_PARSE_COMPLETE
             if self.conn.update_metrics_for_commit(uid,metrics_data) == False:
                 self.conn.reset_to_init(uid)
         except Exception as e:
             self.conn.reset_to_init(uid)
-            print("parse_metrics error",str(e))
-
         return {}
     def poll(self,id):
         self.conn = db.getDb(self.db_params)
