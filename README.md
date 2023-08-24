@@ -31,10 +31,16 @@ We need a postgres installation for this library. A sample docker implementation
 ### Posgres Docker Build
 
 ```bash
-# Example commands to build Docker containers
 cd dockers/postgres-metrics/
 docker build ./ -t postgresmetrics:latest
 ```
+
+### Start Postgres Docker
+
+```bash
+docker-compose -f docker-compose.yml up -d
+```
+
 We need to create a config file that contains directions to connect to database. Following is a sample config file
 ### Config file
 ```
