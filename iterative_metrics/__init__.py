@@ -16,7 +16,6 @@ class metric_parser(object):
         commits = repo.iter_commits()
         commit_group = []
         for commit in commits:
-            print("commit",commit)
             if len(commit_group) == 20:
                 self.db.add_commits(commit_group)
                 commit_group = []
@@ -27,7 +26,6 @@ class metric_parser(object):
         commit_pollers.start_poller()
         while True:
             val = self.db.get_pending_counts()
-            print(val)
             if self.db.get_pending_counts() > 0:
                 time.sleep(5)
                 continue
