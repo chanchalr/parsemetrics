@@ -48,7 +48,6 @@ class postgres_db(database.database):
         """
         try:
             cursor = self.conn.cursor()
-            print(sql_insert,table_data)
             cursor.executemany(sql_insert, table_data)
             self.conn.commit()
             cursor.close()
@@ -70,7 +69,7 @@ class postgres_db(database.database):
             cursor.close()
             return rows[0][0]
         except (Exception, psycopg2.Error) as error:
-            print("error in get_pending_counts commits:", error)
+            print(error)
             return 0
 
     def get_waiting_to_parse_commits(self,count,state=state.COMMIT_PARSE_INIT):
@@ -96,7 +95,6 @@ class postgres_db(database.database):
             self.conn.rollback()
             return False
     def get_commits(self,commmit_row:List,count=50,direction="forward"):
-        print("in get commits")
         uid = None
         res = []
         if commmit_row!=None and len(commmit_row)>0:
@@ -111,15 +109,12 @@ class postgres_db(database.database):
             select_query += " ORDER BY uid ASC LIMIT %s"
         else:
             select_query += " ORDER BY uid DESC LIMIT %s"
-        print("========================="+select_query)
         cursor = self.conn.cursor()
         try:
             cursor.execute(select_query,[state.COMMIT_PARSE_COMPLETE,count])
-            print("Executing query ",select_query)
             rows = cursor.fetchall()
             res = []
             for row in rows:
-                print(len(row),row,row[0],row[1],row[2],row[3],row[4],row[5])
                 res.append({
                     "commit_id":row[0],
                     "author": row[1],
@@ -173,7 +168,6 @@ class postgres_db(database.database):
 
     def update_metrics_for_commit(self,uid:int,metrics:dict={},state=state.COMMIT_PARSE_COMPLETE):
         try:
-            print("update metrics for uid",uid,"metrics",metrics,"state",state)
             cursor = self.conn.cursor()
             # Construct the SQL INSERT statement with the JSON data
             update_query = "UPDATE commmit_metrics SET metrics=%s,state=%s where uid=%s"

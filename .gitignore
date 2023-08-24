@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+dist
+iterative_metrics.egg-info
+build
