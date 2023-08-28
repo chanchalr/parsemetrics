@@ -17,7 +17,7 @@ class metric_parser(object):
         commit_group = []
         for commit in commits:
             if len(commit_group) == 20:
-                self.db.add_commits(commit_group)
+                self.db.add_commits(repo_path,metrics_file,commit_group)
                 commit_group = []
             commit_group.append(commit)
         if len(commit_group):
